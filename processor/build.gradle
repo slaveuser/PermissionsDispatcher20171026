@@ -1,0 +1,53 @@
+import org.gradle.internal.jvm.Jvm
+import permissions.dispatcher.AndroidJarDependencyPlugin
+
+apply plugin: 'kotlin'
+apply plugin: 'com.novoda.bintray-release'
+apply plugin: AndroidJarDependencyPlugin
+
+sourceCompatibility = JavaVersion.VERSION_1_6
+targetCompatibility = JavaVersion.VERSION_1_6
+
+sourceSets.main.java.srcDir project(":library").file("src/main/java")
+sourceSets.test.java.srcDir project(":library").file("src/main/android")
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$KOTLIN_VERSION"
+    compile "com.squareup:javapoet:$JAVAPOET_VERSION"
+    compile "com.squareup:kotlinpoet:$KOTLINPOET_VERSION"
+
+    testCompile "junit:junit:$JUNIT_VERSION"
+    testCompile "com.google.testing.compile:compile-testing:$COMPILE_TESTING_VERSION"
+    testCompile androidJar()
+    testCompile fileTree(dir: './src/test/libs', includes: ['*.jar'])
+    testCompile files(Jvm.current().getToolsJar())
+}
+
+publish {
+    userOrg = USER
+    groupId = GROUP_ID
+    artifactId = ARTIFACT_ID_PROCESSOR
+    version = VERSION
+    desc = DESCRIPTION
+    website = WEBSITE
+    licences = LICENCES
+}
+
+// Non-Android project: Artifactory Plugin adds only 1 publication
+project.ext.publicationName = "maven"
+apply from: rootProject.file('gradle/gradle-artifactory-upload.gradle')
